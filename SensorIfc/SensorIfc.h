@@ -58,8 +58,7 @@ class SensorIfc
     SensorData rawRead();
     SensorData data;
     SensorData rawdata;
-        SensorData calib;
-    void fire();
+    SensorData calib;
 
   private:
     SensorData * buf;
