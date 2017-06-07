@@ -11,16 +11,18 @@
 Explanations:
 CONCEPTIONS:
   Client - Andriod app running on phone
-  Protocol - a set of rules we use to pack data that Client will understand
-  ESP8266 - Wi-Fi module, every time gets data transmits to Client same in other direction
+  Protocol - a set of rules for Client and Arduino communication
+  ESP8266, ESP - Wi-Fi module, every time gets data transmits to Client same in other direction
+  
 INTERFACES:
   ClientIfc - A class for communicating with client, takes care of senfing data according to Protocol
-  MotorIfc - A class for setting speed motors
+  MotorIfc - A class for calculating and setting motors speed
+  SensorIfc - A class for reading data and configuring sensors
+  
 SENSORS:
-  ADXL345 - Accelerometer, see SensorIfc for details. Library folder: ADXL345_library
-  ITG3200 - Gyroscope, see SensorIfc for details. Library folder: ITG3200
+  ADXL345 - Accelerometer, see SensorIfc.cpp for details. Library folder: ADXL345_library
+  ITG3200 - Gyroscope, see SensorIfc.cpp for details. Library folder: ITG3200
   HMC5883 - magnetometer. Library folder: HMC5883_library
-
 */
 
 

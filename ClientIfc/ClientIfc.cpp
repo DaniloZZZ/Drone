@@ -1,5 +1,22 @@
 
-
+/***********
+ DESCTIPTION OF PROTOCOL
+************/
+/*
+Establishing connection:
+    Network communication starts with checking if there's some data from ESP in buffer.
+    If there's nothing, it sends connect signal. If there's something, Arduino prints it to PC via Serial.
+    If ESP is ok, it will answer with IP address and tell you if it has a client connected.
+    Then ESP transmitts the connect signal to Client, which starts to send data if recieves that signal.
+Sending data:
+    Every data starts with a char indicating type of data and ends with endchar. 
+    After sending connect sifnal Arduino goes to infinite loop and sends data from sensors to ESP.
+    ESP will wait for end char from arduino and transmit info to client.
+Recieving data:
+    Anytime ESP gets a char from client it sends it to Arduino.
+    After sending sensor data, Arduino starts listening to ESP and collecting all chars in buffer. 
+    It will go to data parsing when recieves an endchar from ESP or to the next loop iteration after timeout.
+*/
 #include "Tools.h"
 #include "ClientIfc.h"
 #include "Arduino.h"
