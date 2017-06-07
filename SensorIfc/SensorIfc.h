@@ -49,21 +49,18 @@
 class SensorIfc
 {
   public:
-    //SensorIfc(int pinx, int piny, int pinz);
     SensorIfc();
     init();
     Calibrate(int k);
     ADXL345 Accel;
     SensorData Read();
-    SensorData rawRead();
-    SensorData data;
-    SensorData rawdata;
-    SensorData calib;
-
+    SensorData rawRead();// maybe dont need it?
+    SensorData data; // maybe we should work in a pointer to instance stored in main?
+    SensorData rawdata; // maybe dont need it?
+    SensorData calib; // maybe dont need it?
   private:
     SensorData * buf;
     int filterDataSize;
-    int pinx, piny, pinz;
 };
 
 #endif
