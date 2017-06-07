@@ -121,27 +121,6 @@ void HandleCommands(String com){
       client.GetClient();
     }
   }
-
-void   waitforEsp() {
-  Serial.println("Waiting for ESP");
-  String k = "";
-  char ch[4];
-  char t;
-  ch[3] = 0x00;
-  while (k != "end") {
-    if (mySerial.available()) {
-      t = mySerial.read();
-      Serial.write(t);
-
-      for (int i = 0; i < 2; i++) {
-        ch[i] = ch[i + 1];
-      }
-      ch[2] = t;
-      k = String(ch);
-    }
-  }
-  Serial.println("\nArduino::ESPready!");
-}
 void MotorI(short a, short b, short c, short d)
 {
   for (int i = 0; i < 4; i++)
