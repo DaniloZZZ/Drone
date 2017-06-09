@@ -31,7 +31,9 @@ MotorIfc::SetMotors()
   g[1] = 0;
   Serial.print(g[2]);
  // Serial.print("current vc:" + String(a[0]) + ";" + String(a[1]) + "  ");
-  
+      //rollrad = atan(Y / sqrt( angles(0)* X + Z * Z)); // calculated angle in radians
+    //pitchrad = atan(X / sqrt(Y * Y + Z * Z)); // calculated angle in radians
+
   // Set historical data >>
   for (short i = 0; i < 5 - 1; i++)
   {

@@ -9,15 +9,18 @@
 #include <NeoSWSerial.h>
 #include "ClientData.h"
 #include "Arduino.h"
+#include <BasicLinearAlgebra.h>
+
 class ClientIfc
 {
   public:
     ClientIfc(NeoSWSerial *p);
     GetClient();
+    SetDataSize(int size);
     ClientData Read();
     SendCommand(String in);
     SendMessage(String in);
-    SendData(SensorData *out);
+    SendData(Matrix<6> data);
     Send(char c);
     print(String in);
 
@@ -25,6 +28,7 @@ class ClientIfc
     bool connected;
 
   private:
+    int sizeofDataWillBeSent;
     readuntil(char *buf,char *c);
     ParseData(char * in,float r[]);
     String substr(char * in,int s,int e);

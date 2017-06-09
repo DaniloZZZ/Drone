@@ -55,21 +55,24 @@ public:
   init();
   Calibrate(int k);
   getTemp();
-  SensorData Read();
-  void rawRead(); // maybe dont need it?
-  SensorData data;      // maybe we should work in a pointer to instance stored in main?
-  Matrix<3> AccData;   
-  SensorData calib;     // maybe dont need it?
+  Matrix<6> Read();
+ // SensorData data; // maybe we should work in a pointer to instance stored in main?
+  Matrix<3,1,int> AccData;
+  Matrix<3> GyroData;
+  SensorData calib; // maybe dont need it?
   ADXL345 Accel;
 
 private:
   Matrix<3> oldAccData;
+  Matrix<3> oldGyroData;
+  Matrix<3> offsetGyro;
   float filterK;
   ITG3200 Gyro;
   configueAccel();
   configureHyro();
-  SensorData *buf;
   int filterDataSize;
+  unsigned long timeOfPrev;
+  void rawRead(); // maybe dont need it?
 };
 
 #endif

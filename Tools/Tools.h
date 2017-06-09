@@ -49,6 +49,16 @@ public:
     delay(5);
 #endif 
   }
+    static void msg(String m)
+  {
+      //  Serial.println("hi
+  #ifdef DEBUG
+    Serial.print("Debug:: ");
+    Serial.print(m);
+    Serial.print("\n");
+    delay(5);
+#endif 
+  }
 };
 
 #endif
