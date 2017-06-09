@@ -4,7 +4,6 @@
   Released into the public domain.
 */
 
-
 /****************
 * SENSORS DESCRIPTIONS:
 *****************/
@@ -44,23 +43,33 @@
 #define SensorIfc_h
 
 #include <ADXL345.h>
+#include "ITG3200.h"
 #include "Tools.h"
 #include "HardwareSerial.h"
+#include <BasicLinearAlgebra.h>
+
 class SensorIfc
 {
-  public:
-    SensorIfc();
-    init();
-    Calibrate(int k);
-    ADXL345 Accel;
-    SensorData Read();
-    SensorData rawRead();// maybe dont need it?
-    SensorData data; // maybe we should work in a pointer to instance stored in main?
-    SensorData rawdata; // maybe dont need it?
-    SensorData calib; // maybe dont need it?
-  private:
-    SensorData * buf;
-    int filterDataSize;
+public:
+  SensorIfc();
+  init();
+  Calibrate(int k);
+  getTemp();
+  SensorData Read();
+  void rawRead(); // maybe dont need it?
+  SensorData data;      // maybe we should work in a pointer to instance stored in main?
+  Matrix<3> AccData;   
+  SensorData calib;     // maybe dont need it?
+  ADXL345 Accel;
+
+private:
+  Matrix<3> oldAccData;
+  float filterK;
+  ITG3200 Gyro;
+  configueAccel();
+  configureHyro();
+  SensorData *buf;
+  int filterDataSize;
 };
 
 #endif

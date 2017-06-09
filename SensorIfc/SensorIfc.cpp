@@ -1,55 +1,32 @@
 
-/****************
-* SENSORS DESCRIPTIONS:
-*****************/
-
-// ACCELEROMETER ADXL345  http://www.analog.com/media/en/technical-documentation/data-sheets/ADXL345.pdf
-// Measures acceleration, u can get direction of g-vector
-/*
-    Features:
-    - Tap/Double Tap detection
-    - Free-Fall detection
-    - Several measurment ranges: +-2, 4, 6, 8 g on each axis
-    - Set offset values to x,y,z. Addresses: 0x1E, 0x1F, 0x20
-    - 32 level output data FIFO minimizes host processor load
-    - Built in motion detection functions 
-    - Activity/Inactivity monitoring
- 
-    Sensivity: 256 bytes/g  (g = 9.81m/s2)
-    Noize: 1 byte;
-    i2c: 100-400 hz
-*/
-
-// GYROSCOPE ITG3200 https://www.sparkfun.com/datasheets/Sensors/Gyro/PS-ITG-3200-00-01.4.pdf
-// Measures oriantation change rate ( °/sec )
-/*
-    Features:
-    - Digitally-programmable low-pass filter 
-    - Digital-output temperature sensor 
-    - No high pass filter needed
-    - Optional external clock inputs of 32.768kHz or 19.2MHz to synchronize with system clock
-    
-    Sensivity: 14.375 LSBs per °/sec and a full-scale range of ±2000°/sec
-    Turn on time: 50ms
-    i2c: up to 400 hz
-*/
-
 #include "Arduino.h"
 #include "SensorIfc.h"
 #include "Tools.h"
 #include "ADXL345.h"
 #include "Wire.h"
+#include <BasicLinearAlgebra.h>
 
 //TODO: having your 16MHz processor stuck in a busy loop waiting on a 100kHz
 // communication stream is not efficient. You may be better off writing your own I2C code.
 
 SensorIfc::SensorIfc()
 {
+    filterK = 0.6;
 }
 SensorIfc::init()
-{
+{   
+    configueAccel();
+    AccData.Fill(0);
+    oldAccData.Fill(0);
 
-    Accel = ADXL345();
+    configureHyro(); 
+
+    // Set size of Data buffer for filtering;
+    filterDataSize = 1;
+    buf = new SensorData[filterDataSize];
+}
+SensorIfc::configueAccel(){
+    this->Accel = ADXL345();
     // Assign an interrupt for free fall situation;
     // TODO: inmpement my own function to send all this stuff at once, not opening closing connections everytime
     Accel.setFreeFallThreshold(0x06); // 375 mg
@@ -61,42 +38,38 @@ SensorIfc::init()
     Accel.setInterruptMapping(2, 0); // set free fall bit
     Accel.setInterrupt(2, 1);        // Enable firing an event when free fall
     Accel.powerOn();                 // Start measuring data
-
-    //Set Arduino pin modes to INPUT
-    // pinMode(pinx, INPUT);
-    //  pinMode(piny, INPUT);
-    //   pinMode(pinz, INPUT);
-    //Assign numbers of pins to local variables
-    // this->pinx = pinx;
-    //  this->piny = piny;
-    //   this->pinz = pinz;
-
-    // Set size of Data buffer for filtering;
-    filterDataSize = 1;
-    buf = new SensorData[filterDataSize];
 }
-
-SensorData SensorIfc::rawRead()
-{
-    return SensorData((float)analogRead(pinx),
-                      (float)analogRead(piny),
-                      (float)analogRead(pinz));
+SensorIfc::configureHyro(){
+    this->Gyro = ITG3200();
+    this->Gyro.init(ITG3200_ADDR_AD0_LOW);
+    // TODO: configure low-pass filtrer settings (?)
 }
-SensorData SensorIfc::Read()
+SensorIfc::getTemp(){
+    float temp;
+    Gyro.readTemp(&temp);
+    return temp;
+}
+void SensorIfc::rawRead()
 {
-    rawdata = rawRead(); // get raw data
-    SensorData res;
-
-    for (int i = 0; i < filterDataSize - 1; i++) // push in buffer
-    {
-        buf[i] = buf[i + 1];
-        res = res + buf[i]; // add sensor data
-    }
-    buf[filterDataSize - 1] = rawdata;
-    res = res + rawdata;
-    res = res / filterDataSize - calib;
-    this->data = res;
-    return res;
+    int x,y,z;
+    Accel.readAccel(&x, &y, &z);
+    AccData(0)=x;
+    AccData(1)=y;
+    AccData(2)=z;
+}
+SensorData SensorIfc::Read(){
+    this->rawRead();
+    Matrix<3> angles;
+    Matrix<1> K;
+    Matrix<1> mK;    
+    K.Fill(filterK);
+    mK.Fill(1.0-filterK);
+    angles = this->AccData*K + this->oldAccData*mK;
+    this->oldAccData = angles; 
+    //rollrad = atan(Y / sqrt( angles(0)* X + Z * Z)); // calculated angle in radians
+    //pitchrad = atan(X / sqrt(Y * Y + Z * Z)); // calculated angle in radians
+    SensorData out(angles(0),angles(1),angles(2));
+    return out;
 }
 SensorIfc::Calibrate(int k)
 {
@@ -107,7 +80,7 @@ SensorIfc::Calibrate(int k)
     Serial.println("Started Calibration");
     for (int i = 0; i < k; i++)
     {
-        r = rawRead();
+       // r = rawRead();
         s = s + r;
         if (max < r.maxval())
             max = r.maxval();
