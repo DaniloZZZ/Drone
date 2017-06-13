@@ -42,6 +42,8 @@
 #ifndef SensorIfc_h
 #define SensorIfc_h
 
+#define SENSOR_DATA_SIZE 6
+
 #include <ADXL345.h>
 #include "ITG3200.h"
 #include "Tools.h"
@@ -55,24 +57,25 @@ public:
   init();
   Calibrate(int k);
   getTemp();
-  Matrix<6> Read();
+  Matrix<SENSOR_DATA_SIZE> Read();
  // SensorData data; // maybe we should work in a pointer to instance stored in main?
-  Matrix<3,1,int> AccData;
+  Matrix<3> AccData;
   Matrix<3> GyroData;
-  SensorData calib; // maybe dont need it?
+  Matrix<SENSOR_DATA_SIZE> calib; // maybe dont need it?
   ADXL345 Accel;
 
 private:
   Matrix<3> oldAccData;
   Matrix<3> oldGyroData;
   Matrix<3> offsetGyro;
+  Matrix<3,1,int> offsetAccel;
   float filterK;
   ITG3200 Gyro;
   configueAccel();
   configureHyro();
   int filterDataSize;
   unsigned long timeOfPrev;
-  void rawRead(); // maybe dont need it?
+  void rawRead(); 
 };
 
 #endif

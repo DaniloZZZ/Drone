@@ -10,22 +10,25 @@
 #include "Arduino.h"
 #include "Servo.h"
 #include "Tools.h"
+#include <BasicLinearAlgebra.h>
 class MotorIfc
 {
 public:
   MotorIfc(Servo *m);
-  SetData(SensorData *in);
+  SetData(Matrix<6> *in);
   SetAngle();
   Calibrate();
   String ToString();
   SetMotors();
   SetHeigh(double h);
-
+  Matrix<6> * dataForClient;
   Clear();
-  double a[3];
-  double g[3];
+  double a[3]; //angle
+  double da[3]; // deriv of angle
+  double a0[3]; // desired angle
 
 private:
+  unsigned int time; 
   double dhist[3][5];
   double map(double x, double i_min, double i_max,
              double o_min, double o_max);

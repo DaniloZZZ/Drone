@@ -6,7 +6,6 @@ MotorIfc::MotorIfc(Servo *m)
   for (int i = 0; i < 4; i++)
   {
     mt[i] = m + i;
-    
   }
   for (short i = 0; i < 5; i++)
   {
@@ -15,74 +14,92 @@ MotorIfc::MotorIfc(Servo *m)
       dhist[j][i] = 0;
     }
   }
-
+  this->time = millis();
   //mt[0].attach(a);
   //mt[1].attach(b);
   //mt[2].attach(c);
-  // mt[3].attach(d);
+  //mt[3].attach(d);
 }
 MotorIfc::SetMotors()
 {
   int val;
-
-  double lm = 0.007;
-  double dm = 0.0050;
-  g[0] = 0;
-  g[1] = 0;
-  Serial.print(g[2]);
- // Serial.print("current vc:" + String(a[0]) + ";" + String(a[1]) + "  ");
-      //rollrad = atan(Y / sqrt( angles(0)* X + Z * Z)); // calculated angle in radians
-    //pitchrad = atan(X / sqrt(Y * Y + Z * Z)); // calculated angle in radians
-
+  double dt;
+  double anglemult = 35; //max angle=60deg/anglemult
+  double lm = (0.0091 - 0.00015)*anglemult;
+  double dm = 0.0181*anglemult;
+  a0[0] = 0;
+  a0[1] = 0;
+  //Serial.print(a0[2]);
+  // Serial.print("current vc:" + String(a[0]) + ";" + String(a[1]) + "  ");
+      
   // Set historical data >>
+  /*
   for (short i = 0; i < 5 - 1; i++)
   {
     for (short j = 0; j < 3; j++)
     {
-      dhist[j][i] = dhist[j][i + 1];
+     // dhist[j][i] = dhist[j][i + 1];
     }
-  }
+  }*/
   //Serial.print("D error: ");
-
+  /*
   for (short i = 0; i < 3; i++)
   {
-    dhist[i][4] = (a[i] - g[i]); //Setting to _current_ desired angle (!)
+    dhist[i][4] = (a[i] - a0[i]); //Setting to _current_ desired angle (!)
   //  Serial.print(String(dhist[i][4] - dhist[i][3]) + "; ");
-  }
+  }*/
 
   // <<
-
+  dt = (millis() - this->time);
+  Serial.println(dt);
+  this->time = millis();
   for (short i = 0; i < 2; i++)
   {
-    v[i] = lm * (a[i] - g[i]) + dm * (dhist[i][4] - dhist[i][3]);
+    v[i] = lm * (a[i] - a0[i]) + dm * (da[i]);
   }
   v[2] = -v[0];
   v[3] = -v[1];
-
+  (*(this->dataForClient))(0) = v[0];
+  (*(this->dataForClient))(1) = v[1];
+  (*(this->dataForClient))(2) = dm * (da[0]);
+  (*(this->dataForClient))(3) = dm * (da[1]);
+  (*(this->dataForClient))(4) = lm * (a[0] - a0[0]) ;
+  (*(this->dataForClient))(5) = lm * (a[1] - a0[1]) ;
   //val  = map(analogRead(1),0,1023,800,2300);
   //Serial.println(val);
-  //Serial.print("motor speeds: ");
+  Serial.print("motor speeds: ");
   for (short i = 0; i < 4; i++)
   {
-    val = (int)(map(g[2] + v[i], 0., 2., 800, 2300));
+    val = (int)(map(a0[2]*0.73 + v[i], 0., 1., 800, 2300));
 
     mt[i]->writeMicroseconds(val);
-    //Serial.print(String(val) + "; ");
+    Serial.print(val);
+    Serial.print(';');
   }
- // Serial.print("\n ");
+  //Serial.println(millis()-this->time);
 }
 MotorIfc::SetHeigh(double h)
 {
-  g[2] = h;
+  a0[2] = h;
 }
 
-MotorIfc::SetData(SensorData *in)
+MotorIfc::SetData(Matrix<6> *in)
 {
+  float X = (*in)(0);
+  float Y = (*in)(1);
+  float Z = (*in)(2);
+  float rollrad = atan(X/(Z+1)); // calculated angle in radians
+  float pitchrad = atan(Y/(Z+1)); // calculated angle in radians
 
-  this->a[0] = in->x;
-  this->a[1] = in->y;
+  this->da[0] = -(*in)(4); // order is inversed, rotation over x causes y angle change
+  this->da[1] = (*in)(3); //
+  
+  this->a[0] = rollrad;
+  this->a[1] = pitchrad;
  // Serial.print("Before conv" + String(a[0]) + "; " + String(a[1]));
+  Convertax(da);
   Convertax(a);
+  this->da[2] = (*in)(5);
   this->a[2] = 1.0;
 }
 MotorIfc::Convertax(double *x)

@@ -6,6 +6,8 @@
 #ifndef ClientIfc_h
 #define ClientIfc_h
 
+#define CLIENT_DATA_SIZE 12
+
 #include <NeoSWSerial.h>
 #include "ClientData.h"
 #include "Arduino.h"
@@ -18,13 +20,13 @@ class ClientIfc
     GetClient();
     SetDataSize(int size);
     ClientData Read();
-    SendCommand(String in);
-    SendMessage(String in);
-    SendData(Matrix<6> data);
+    SendCommand(char * in);
+    SendMessage(char * in);
+    SendData(Matrix<CLIENT_DATA_SIZE>  data);
     Send(char c);
     print(String in);
 
-    ClientData hist[5];
+    //ClientData hist[5];
     bool connected;
 
   private:

@@ -11,7 +11,7 @@
 
 SensorIfc::SensorIfc()
 {
-    this->filterK = 0.6;
+    this->filterK = 0.5;
     this->timeOfPrev = millis();
 }
 SensorIfc::init()
@@ -24,6 +24,7 @@ SensorIfc::init()
 }
 SensorIfc::configueAccel()
 {
+    int a[3][1];
     this->Accel = ADXL345();
     // Assign an interrupt for free fall situation;
     // TODO: inmpement my own function to send all this stuff at once, not opening closing connections everytime
@@ -36,6 +37,9 @@ SensorIfc::configueAccel()
     Accel.setInterruptMapping(2, 0); // set free fall bit
     Accel.setInterrupt(2, 1);        // Enable firing an event when free fall
     Accel.powerOn();                 // Start measuring data
+    delay(10);
+    this->Accel.readAccel(a[0]);
+    this->offsetAccel = a;
 }
 SensorIfc::configureHyro()
 {
@@ -51,6 +55,23 @@ SensorIfc::configureHyro()
     // gyro.zeroCalibrate(2500, 2);
     // TODO: configure low-pass filtrer settings (?)
 }
+SensorIfc::Calibrate(int k)
+{
+    Matrix<SENSOR_DATA_SIZE> sum;
+    Matrix<1> mk;
+
+    Serial.println("Started Calibration");
+    for (int i = 0; i < k; i++)
+    {
+        this->rawRead();
+        sum = sum +  VertCat(this->AccData,this->GyroData);;
+    }
+    mk(0)=1/k;
+    sum = sum * mk; // mean of k data
+    calib = sum;
+    Serial<<"Calibration done: " << calib << ";\n";
+}
+
 SensorIfc::getTemp()
 {
     float temp;
@@ -60,13 +81,17 @@ SensorIfc::getTemp()
 void SensorIfc::rawRead()
 {
     int a[3][1];
+    float fa[3][1];
     float g[3][1]; //Matrix class supports only 2d arrays on assignment
     this->Accel.readAccel(a[0]);
     this->Gyro.readGyro(g[0]);
-    this->AccData = a;
+    for(byte i=0;i<3;i++)
+        fa[i][0] = (float)a[i][0];
+    this->AccData = fa;
     this->GyroData = g;
 }
-Matrix<6> SensorIfc::Read()
+
+Matrix<SENSOR_DATA_SIZE> SensorIfc::Read()
 {
     Matrix<3> angles;
     Matrix<3> grate;
@@ -76,47 +101,26 @@ Matrix<6> SensorIfc::Read()
     this->rawRead();
 
     K.Fill(filterK);
-    rawConvert.Fill(1 / 256.0);
-    angles = this->AccData;
+    rawConvert(0) =(1 / 256.0);
+    angles = (this->AccData - this->offsetAccel)*rawConvert;
     //Serial.println(angles(0));
     //Serial.println(AccData(0));
 
     //Filtering data
-    angles = (angles + this->oldAccData) * K - this->oldAccData;
+    angles = (angles - this->oldAccData) * K + this->oldAccData;
     this->oldAccData = angles;
 
-    rawConvert(0) = 1 / 14.375;
+   // rawConvert(0) = 1 / 14.375; // deg/sec
+    rawConvert(0) = 1 / 14.375/ 180 * 3.14159;// to radians
     grate = (this->GyroData - this->offsetGyro) * rawConvert;
     //Filtering data
-    grate = (grate + this->oldGyroData) * K - this->oldGyroData;
+    grate = (grate - this->oldGyroData) * K + this->oldGyroData;
     this->oldGyroData = grate;
 
     looptime = millis() - this->timeOfPrev;
     this->timeOfPrev = millis();
     Serial.print("Loop time= ");
     Serial.println(looptime);
-    Matrix<6> res = VertCat(angles,grate); // concat the results
+    Matrix<SENSOR_DATA_SIZE> res = VertCat(angles,grate); // concat the results
     return  res;
-}
-SensorIfc::Calibrate(int k)
-{
-    SensorData s; // sum of data
-    SensorData r; // current data variable
-    double max;
-    double min = 1000;
-    Serial.println("Started Calibration");
-    for (int i = 0; i < k; i++)
-    {
-        // r = rawRead();
-        s = s + r;
-        if (max < r.maxval())
-            max = r.maxval();
-        if (min > r.minval())
-            min = r.minval();
-    }
-    s = s / k; // mean of k data
-    calib = s;
-    Serial.println("Calibration done: Mean: " + s.ToString() +
-                   "max=" + String(max) +
-                   "min=" + String(min) + ";");
 }

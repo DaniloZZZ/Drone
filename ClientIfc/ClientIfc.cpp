@@ -45,7 +45,8 @@ ClientIfc::GetClient()
     bool esp = false;
 
     // store input
-    String in = "";
+    char in[64] ={'\0'};
+    byte i=0;
     char c;
     // wait for data from port forewer
     // TODO: Set timeout(?)
@@ -54,25 +55,35 @@ ClientIfc::GetClient()
         if (port->available())
         { // if got some data, esp is on, read data
             esp = true;
-            c = port->read(); // read data from port
+            c = port->read();  // read data from port
             Serial.print(c);  // print all of info, also service info from esp (e.g. ipaddr)
             delay(1);
             if (c == '$')
             { // The convention: client sends OK msg from start of connection till drone answers
-                if (in == "!OK")
-                    Serial.println("got endch");
+                if (strcmp(in,"!OK")==0){
                     break;
-                in = "";
+                }
+                Serial.println("got endch");
+                memset(&in[0], 0, sizeof(in));
+                i = 0;
             }
-            else
-                in += c;
+            else{
+                if(c!='\0'){
+                in[i++]=c;
+                if(i>63){ //Overflow of buffer
+                   memset(&in[0], 0, sizeof(in));
+                   i=0;
+                }   
+                }
+            }
         }
         else
         {
             if (!esp)
             { // it's for avoid sending "connect" multiple times
+                Serial.println("Requesting Ip..");
                 SendCommand("connect");
-                delay(30);
+                delay(100);
             }
         }
     }
@@ -100,8 +111,8 @@ ClientData ClientIfc::Read()
 
     data.raw = in;
 
-    Serial.print("Recieved>>");
-    Serial.println(buf);
+    //Serial.print("Recieved>>");
+    //Serial.println(buf);
 
     Debug::msg("ClientIfc:ReadFromClient> ");
     Debug::msg(buf);
@@ -136,28 +147,30 @@ ClientData ClientIfc::Read()
     return data;
 }
 
-ClientIfc::SendCommand(String in)
+ClientIfc::SendCommand(char * in)
 {
-    String p = "";
-    p += commch + in + endch;
+    char p[64] = {'\0'};
+    sprintf(p,"%c%s%c",commch, in, endch);
+    Serial.println(p);
+    delay(1);
     port->print(p);
 }
-ClientIfc::SendMessage(String in)
+ClientIfc::SendMessage(char* in)
 {
-    String p = "";
-    p += msgch + in + endch;
-    port->print(p);
+    char p[64] = {'\0'};  
+    sprintf(p,"%c%s%c", msgch, in, endch);
+    port->write(p);
 }
-ClientIfc::SendData(Matrix<6> data)
+ClientIfc::SendData(Matrix<CLIENT_DATA_SIZE> data)
 { // Form a char array according to protocol
-    char str[28] = {0};
+    char str[64] = {0};
     char val[8] = {0};
     byte siz;
 
     str[0] = this->datach;
     for (byte i = 0; i < this->sizeofDataWillBeSent; i++)
     {
-        dtostrf(data(i), 3, 2, val);
+        dtostrf(data(i), 6, 4, val);
         siz = sprintf(str, "%s%s;", str, val);
     }
     str[siz] = this->endch; // setting endchar
@@ -175,7 +188,7 @@ ClientIfc::ParseData(char *ch, float r[])
     char tmp[16];
     j = 1;
     n = 0;
-
+     delay(10);
     ch[k - 1] = endch;
     for (byte i = 1; i < k; i++)
     {
