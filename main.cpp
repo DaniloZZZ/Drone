@@ -1,12 +1,16 @@
-#include <Tools.h>
+  
+#define LEDPIN 11
 
 #include <MemoryFree.h>
 #include <NeoSWSerial.h>
 
+#include <Tools.h>
 #include "Servo.h"
 #include <SensorIfc.h>
 #include <ClientIfc.h>
 #include <MotorIfc.h>
+
+
 /*
 Explanations:
 CONCEPTIONS:
@@ -25,7 +29,6 @@ SENSORS:
   HMC5883 - magnetometer. Library folder: HMC5883_library
 */
 
-
 NeoSWSerial mySerial(8, 9); // RX, TX // Library for communicating with ESP8266
 ClientIfc client(&mySerial);
 ClientData in;
@@ -33,60 +36,87 @@ ClientData in;
 Servo mt[4];
 MotorIfc motor(mt);
 SensorIfc sensor; // Sensor uses A4, A5 for i2c communication with GY-85
-SensorData data;
+//SensorData data;
+Matrix<CLIENT_DATA_SIZE> data;
+Matrix<6> motordata;
 
 bool wasint; // used to check if there was an interrupt to read INT_SOURCE and clear INT_FF bit in Accel
+float histHeigh = 0.0;
 
 void setup() {
   Serial.begin(115200);
   mySerial.begin(38400);
 
   Serial.println(F("Goodnight moon!"));
-  pinMode(7, OUTPUT);
-
-
+  pinMode(LEDPIN, OUTPUT);
+  
+  Serial.print("freeMemory()=");
+  Serial.println(freeMemory());
+  digitalWrite(LEDPIN,HIGH);
   MotorI(3, 4, 5, 6);
+  digitalWrite(LEDPIN,LOW);
+
+  motor.dataForClient = &motordata;
   motor.Calibrate();
 
   Serial.println(F("Waiting for Client to answer"));
+  client.SetDataSize(CLIENT_DATA_SIZE);
   client.GetClient();
   client.SendCommand("WAIT");
 
+  Serial.print("freeMemory()=");
+  Serial.println(freeMemory());
+  
   sensor.init();
   wasint = false;
   attachInterrupt(0, fire, HIGH);   // attach interrupt from accel to arduino
   sensor.Calibrate(200);
+  
+  Serial.print("freeMemory()=");
+  Serial.println(freeMemory());
 }
 void loop() {
+  double temp;
   clearInterrupt();
-  
-  data = sensor.Read();
-  motor.SetData(&data);
-  motor.SetMotors();
 
+  Matrix<SENSOR_DATA_SIZE> sensordata;
+  sensordata = sensor.Read();
+  motor.SetData(&sensordata);
+  motor.SetMotors();
+  temp = sensor.getTemp();
+  
+  data = VertCat(sensordata,motordata);
   while (Serial.available()) client.Send(Serial.read());
-  delay(5);
+  //delay(2);
   // Serial.print(F("\nArduino::send>> " ));
   // data.toChar(str);
   // Serial.println(str);
   
-  client.SendData(&data);
+   client.SendData(data);
   in = client.Read();
   //Serial.print(F("Got from client: "));
   //Serial.println(in.raw);
-  Serial.print("freeMemory()=");
+  Serial.print(F("freeMemory()="));
   Serial.println(freeMemory());
-  delay(5);
+  //delay(2);
   
   if (in.type == "command") { 
+    //Serial.println("Got Command:" + in.command);
     HandleCommands(in.command);
   } else if (in.type == "msg") {
-    Serial.println("Got Message:" + in.msg);
+    //Serial.println("Got Message:" + in.msg);
   } else if (in.type == "data") {
     Serial.print(F("Parsed Data: "));
     Serial.println(in.data.y);
-    motor.SetHeigh((abs(in.data.y)) / 8.);
-    analogWrite(6, map(in.data.y, -2, 10, 0, 255));
+    
+    float heigh = abs(in.data.y)/10.;
+    if(abs(histHeigh-heigh)<0.1){
+          motor.SetHeigh(heigh);
+      }
+    histHeigh = heigh;
+    
+   // motor.SetHeigh(0.8);
+    analogWrite(LEDPIN, int(map(in.data.y, -2, 10, 0, 255)));
     delay(1);
   }
 }
@@ -95,7 +125,7 @@ void fire()
 {
   if (!wasint) {
     wasint = true;
-    digitalWrite(7, HIGH); // This sets 5v on 7th pin, blink a led
+    digitalWrite(LEDPIN, HIGH); // This sets 5v on 7th pin, blink a led
     Serial.println("We're falling!");
     // Note: we can't use i2c while handling interrupts because i2c uses interrupts. That's why we use clearInterrupt()
   }
@@ -116,11 +146,12 @@ void clearInterrupt() { // clear interrupt bit from INT_SOURCE register to stop 
 void HandleCommands(String com){
       if (com == "BREAK") {
       Serial.println( "Disconnecting"); \
-      motor.SetHeigh(-0.2);
-      analogWrite(6, 0 );
+      motor.SetHeigh(0.02);
+      analogWrite(LEDPIN, 0 );
       client.GetClient();
     }
   }
+
 void MotorI(short a, short b, short c, short d)
 {
   for (int i = 0; i < 4; i++)
