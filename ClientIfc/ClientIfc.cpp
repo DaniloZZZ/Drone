@@ -63,7 +63,7 @@ ClientIfc::GetClient()
                 if (strcmp(in,"!OK")==0){
                     break;
                 }
-                Serial.println("got endch");
+                Serial.println("\n");
                 memset(&in[0], 0, sizeof(in));
                 i = 0;
             }
@@ -83,11 +83,11 @@ ClientIfc::GetClient()
             { // it's for avoid sending "connect" multiple times
                 Serial.println("Requesting Ip..");
                 SendCommand("connect");
-                delay(100);
+                delay(20);
             }
         }
     }
-    SendCommand("OK");
+    SendMessage("Hello Client");
     connected = true;
 }
 ClientIfc::SetDataSize(int size)
@@ -151,19 +151,17 @@ ClientIfc::SendCommand(char * in)
 {
     char p[64] = {'\0'};
     sprintf(p,"%c%s%c",commch, in, endch);
-    Serial.println(p);
-    delay(1);
     port->print(p);
 }
 ClientIfc::SendMessage(char* in)
 {
     char p[64] = {'\0'};  
     sprintf(p,"%c%s%c", msgch, in, endch);
-    port->write(p);
+    port->print(p);
 }
 ClientIfc::SendData(Matrix<CLIENT_DATA_SIZE> data)
 { // Form a char array according to protocol
-    char str[64] = {0};
+    char str[128] = {0};
     char val[8] = {0};
     byte siz;
 

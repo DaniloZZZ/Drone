@@ -24,7 +24,7 @@ MotorIfc::SetMotors()
 {
   int val;
   double dt;
-  double anglemult = 35; //max angle=60deg/anglemult
+  double anglemult = 40; //max angle=60deg/anglemult
   double lm = (0.0091 - 0.00015)*anglemult;
   double dm = 0.0181*anglemult;
   a0[0] = 0;
@@ -70,7 +70,7 @@ MotorIfc::SetMotors()
   Serial.print("motor speeds: ");
   for (short i = 0; i < 4; i++)
   {
-    val = (int)(map(a0[2]*0.73 + v[i], 0., 1., 800, 2300));
+    val = (int)(map(a0[2] + v[i], 0., 1., 800, 2300));
 
     mt[i]->writeMicroseconds(val);
     Serial.print(val);

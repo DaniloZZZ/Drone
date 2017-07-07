@@ -55,6 +55,7 @@ class SensorIfc
 public:
   SensorIfc();
   init();
+  SetFilterKPointer(float *f);
   Calibrate(int k);
   getTemp();
   Matrix<SENSOR_DATA_SIZE> Read();
@@ -68,8 +69,8 @@ private:
   Matrix<3> oldAccData;
   Matrix<3> oldGyroData;
   Matrix<3> offsetGyro;
-  Matrix<3,1,int> offsetAccel;
-  float filterK;
+  Matrix<3> offsetAccel;
+  float * filterK;
   ITG3200 Gyro;
   configueAccel();
   configureHyro();

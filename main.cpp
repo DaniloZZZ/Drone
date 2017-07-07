@@ -37,8 +37,8 @@ Servo mt[4];
 MotorIfc motor(mt);
 SensorIfc sensor; // Sensor uses A4, A5 for i2c communication with GY-85
 //SensorData data;
-Matrix<CLIENT_DATA_SIZE> data;
-Matrix<6> motordata;
+Matrix <CLIENT_DATA_SIZE> data;
+Matrix <6> motordata;
 
 bool wasint; // used to check if there was an interrupt to read INT_SOURCE and clear INT_FF bit in Accel
 float histHeigh = 0.0;
@@ -79,7 +79,7 @@ void loop() {
   double temp;
   clearInterrupt();
 
-  Matrix<SENSOR_DATA_SIZE> sensordata;
+  Matrix <SENSOR_DATA_SIZE> sensordata;
   sensordata = sensor.Read();
   motor.SetData(&sensordata);
   motor.SetMotors();
